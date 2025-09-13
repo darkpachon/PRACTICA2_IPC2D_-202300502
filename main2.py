@@ -163,4 +163,79 @@ class SistemaTurnosApp:
         
         main_frame.rowconfigure(3, weight=1)
     
+    def registrar_paciente(self):
+        nombre = self.nombre_var.get().strip()
+        edad = self.edad_var.get().strip()
+        especialidad = self.especialidad_var.get()
+        
+        if not nombre:
+            messagebox.showerror("Error", "Por favor ingrese el nombre del paciente.")
+            return
+        
+        if not edad or not edad.isdigit():
+            messagebox.showerror("Error", "Por favor ingrese una edad válida.")
+            return
+        
+        if not especialidad:
+            messagebox.showerror("Error", "Por favor seleccione una especialidad.")
+            return
+        
+        paciente = Paciente(nombre, int(edad), especialidad)
+        self.cola.encolar(paciente)
+        
+        self.actualizar_interfaz()
+        
+        self.nombre_var.set("")
+        self.edad_var.set("")
+        self.especialidad_var.set("")
+        
+        messagebox.showinfo("Éxito", f"Paciente {nombre} registrado correctamente.")
     
+    def atender_paciente(self):
+        if self.cola.esta_vacia():
+            messagebox.showinfo("Info", "No hay pacientes en espera.")
+            self.paciente_actual_text.set("No hay pacientes en atención")
+            return
+        
+        paciente = self.cola.desencolar()
+        
+        info_text = f"Atendiendo a: {paciente.nombre} (Edad: {paciente.edad}) - " \
+                   f"Especialidad: {paciente.especialidad} - " \
+                   f"Tiempo estimado: {paciente.tiempo} minutos"
+        self.paciente_actual_text.set(info_text)
+        
+        self.actualizar_interfaz()
+        
+        messagebox.showinfo("Paciente Atendido", f"Atendiendo a {paciente.nombre}")
+    
+    def actualizar_interfaz(self):
+        self.pacientes_espera_var.set(str(len(self.cola)))
+        self.tiempo_espera_var.set(f"{self.cola.obtener_tiempo_total()} min")
+        
+        imagen_path = graficar_cola(self.cola)
+        self.mostrar_imagen_cola(imagen_path)
+    
+    def mostrar_imagen_cola(self, filename):
+        for widget in self.canvas_frame.winfo_children():
+            widget.destroy()
+        
+        try:
+            image = Image.open(filename)
+            if image.width > 800 or image.height > 400:
+                image = image.resize((800, 400), Image.Resampling.LANCZOS)
+            photo = ImageTk.PhotoImage(image)
+            
+            label = ttk.Label(self.canvas_frame, image=photo)
+            label.image = photo
+            label.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        except Exception as e:
+            label = ttk.Label(self.canvas_frame, text=f"Error al cargar imagen: {str(e)}")
+            label.grid(row=0, column=0)
+
+def main():
+    root = tk.Tk()
+    app = SistemaTurnosApp(root)
+    root.mainloop()
+    
+if __name__ == "__main__":
+    main()
